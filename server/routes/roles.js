@@ -5,6 +5,7 @@ const Response = require("../lib/Response");
 const rolePrivileges = require("../config/rolePrivileges");
 const RolePrivileges = require("../db/models/RolePrivileges");
 const CustomError = require("../lib/Error");
+const Enum = require("../config/Enum");
 router.get("/", async (req, res) => {
   try {
     let roles = await Roles.find({});
