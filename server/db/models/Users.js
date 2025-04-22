@@ -10,6 +10,7 @@ const schema = mongoose.Schema(
     phone_number: String,
   },
   {
+    versionKey: false,
     timestapms: {
       createdAt: "created_at",
       updatedAt: "updated_at",

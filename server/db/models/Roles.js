@@ -19,12 +19,12 @@ const schema = mongoose.Schema(
 );
 
 class Roles extends mongoose.Model {
-  // static async (query) {
-  //     if (query._id) {
-  //         await RolePrivileges.deleteMany({role_id: query._id});
-  //     }
-  //     await super.deleteMany(query);
-  // }
+  static async deleteMany(query) {
+    if (query._id) {
+      await RolePrivileges.deleteMany({ role_id: query._id });
+    }
+    await super.deleteMany(query);
+  }
 }
 
 schema.loadClass(Roles);
