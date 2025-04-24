@@ -40,7 +40,7 @@ module.exports = function () {
             exp: parseInt(Date.now() / 1000) * config.JWT.EXPIRE_TIME,
           });
         } else {
-          done(new Error("User nor found"), null);
+          done(new Error("User not found"), null);
         }
       } catch (err) {
         done(err, null);
