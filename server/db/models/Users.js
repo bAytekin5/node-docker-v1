@@ -3,7 +3,9 @@ const { PASS_LENGTH, HTTP_CODES } = require("../../config/Enum");
 const is = require("is_js");
 const CustomError = require("../../lib/Error");
 const bcrypt = require("bcrypt");
-
+const config = require("../../config")
+const DEFAULT_LANG = require("../../config");
+const i18n = new (require("../../lib/i18n"))(config.DEFAULT_LANG);
 const schema = mongoose.Schema(
   {
     email: { type: String, required: true, unique: true },
@@ -12,6 +14,7 @@ const schema = mongoose.Schema(
     first_name: String,
     last_name: String,
     phone_number: String,
+    language: { type: String, default: DEFAULT_LANG },
   },
   {
     versionKey: false,
@@ -23,7 +26,6 @@ const schema = mongoose.Schema(
 );
 
 class Users extends mongoose.Model {
-
   validPassword(password) {
     return bcrypt.compareSync(password, this.password);
   }
@@ -31,11 +33,15 @@ class Users extends mongoose.Model {
     email = String(email || "").trim();
     password = String(password || "");
 
-    if (typeof password !== "string" || password.length < PASS_LENGTH || is.not.email(email)) {
+    if (
+      typeof password !== "string" ||
+      password.length < PASS_LENGTH ||
+      is.not.email(email)
+    ) {
       throw new CustomError(
         HTTP_CODES.UNAUTHORIZED,
-        "Validation Error",
-        "email or password wrong"
+        i18n.translate("COMMON.VALIDATION_ERROR_TITLE", config.DEFAULT_LANG),
+        i18n.translate("USERS.AUTH_ERROR", config.DEFAULT_LANG)
       );
     }
 

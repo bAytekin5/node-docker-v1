@@ -7,6 +7,8 @@ const RolePrivileges = require("../db/models/RolePrivileges");
 const CustomError = require("../lib/Error");
 const Enum = require("../config/Enum");
 const auth = require("../lib/auth")();
+const config= require("../config")
+const i18n = new (require("../lib/i18n"))(config.DEFAULT_LANG);
 
 router.all("*", auth.authenticate(), (req, res, next) => {
   next();
@@ -28,8 +30,8 @@ router.post("/add", auth.checkRoles("role_add"), async (req, res) => {
     if (!body.role_name)
       throw new CustomError(
         Enum.HTTP_CODES.BAD_REQUEST,
-        "Validation error!",
-        "role_name field must be filled"
+        i18n.translate("COMMON.VALIDATION_ERROR_TITLE", req.user.language),
+        i18n.translate("COMMON.FIELD_MUST_BE_FILLED", req.user.language, ["role_name"]),
       );
 
     if (
@@ -39,8 +41,8 @@ router.post("/add", auth.checkRoles("role_add"), async (req, res) => {
     ) {
       throw new CustomError(
         Enum.HTTP_CODES.BAD_REQUEST,
-        "Validation error!",
-        "permissions field must be an Array"
+        i18n.translate("COMMON.VALIDATION_ERROR_TITLE", req.user.language),
+        i18n.translate("COMMON.FIELD_MUST_BE_TYPE", req.user.language, ["permissions","array"]),
       );
     }
 
@@ -72,8 +74,8 @@ router.post("/update", auth.checkRoles("role_update"), async (req, res) => {
     if (!body._id)
       throw new CustomError(
         Enum.HTTP_CODES.BAD_REQUEST,
-        "Validation error !",
-        "_id field must be"
+        i18n.translate("COMMON.VALIDATION_ERROR_TITLE", req.user.language),
+        i18n.translate("COMMON.FIELD_MUST_BE_FILLED", req.user.language, ["_İd"]),
       );
     let updates = {};
     if (body.role_name) updates.role_name = body.role_name;
@@ -121,8 +123,8 @@ router.post("/delete", auth.checkRoles("role_delete"), async (req, res) => {
     if (!body._id)
       throw new CustomError(
         Enum.HTTP_CODES.BAD_REQUEST,
-        "Validation error!",
-        "_id field must be"
+        i18n.translate("COMMON.VALIDATION_ERROR_TITLE", req.user.language),
+        i18n.translate("COMMON.FIELD_MUST_BE_FILLED", req.user.language, ["_id"]),
       );
     await Roles.deleteMany({ _id: body._id });
     res.json(Response.successResponse({ success: true }));

@@ -10,6 +10,7 @@ const UserRoles = require("../db/models/UserRoles");
 const Roles = require("../db/models/Roles");
 const config = require("../config");
 const auth = require("../lib/auth")();
+const i18n = new (require("../lib/i18n"))(config.DEFAULT_LANG);
 var router = express.Router();
 
 router.post("/register", async (req, res) => {
@@ -84,8 +85,8 @@ router.post("/auth", async (req, res) => {
     Users.validateFieldsBeforeAuth(email, password);
 
     const user = await Users.findOne({email})
-    if(!user) throw new CustomError (Enum.HTTP_CODES.UNAUTHORIZED,"Validation Error", "email or password wrong");
-    if(!user.validPassword(password)) throw new CustomError(Enum.HTTP_CODES.UNAUTHORIZED, "Validation Error! ", "email or password wrong");
+    if(!user) throw new CustomError (Enum.HTTP_CODES.UNAUTHORIZED,i18n.translate("COMMON.VALIDATION_ERROR_TITLE", config.DEFAULT_LANG), i18n.translate("USERS.AUTH_ERROR", config.DEFAULT_LANG));
+    if(!user.validPassword(password)) throw new CustomError(Enum.HTTP_CODES.UNAUTHORIZED, i18n.translate("COMMON.VALIDATION_ERROR_TITLE", config.DEFAULT_LANG), i18n.translate("USERS.AUTH_ERROR", config.DEFAULT_LANG));
     
     let payload = {
       id: user._id,
@@ -124,42 +125,30 @@ router.post("/add", auth.checkRoles("user_add"), async (req, res) => {
     if (!body.email)
       throw new CustomError(
         Enum.HTTP_CODES.BAD_REQUEST,
-        "Validation Error!",
-        "email field must be filled"
-      );
+        i18n.translate("COMMON.VALIDATION_ERROR_TITLE", req.user.language), i18n.translate("COMMON.FIELD_MUST_BE_FILLED", req.user.language, ["email"]));
     if (!is.email(body.email))
       throw new CustomError(
         Enum.HTTP_CODES.BAD_REQUEST,
-        "Validation Error!",
-        "email field must be an email format"
-      );
+        i18n.translate("COMMON.VALIDATION_ERROR_TITLE", req.user.language), i18n.translate("USERS.EMAIL_FORMAT_ERROR", req.user.language));
+
     if (!body.password)
       throw new CustomError(
         Enum.HTTP_CODES.BAD_REQUEST,
-        "Validation Error!",
-        "password field must be filled"
-      );
+        i18n.translate("COMMON.VALIDATION_ERROR_TITLE", req.user.language), i18n.translate("COMMON.FIELD_MUST_BE_FILLED", req.user.language, ["password"]));
     if (body.password < Enum.PASS_LENGTH)
       throw new CustomError(
         Enum.HTTP_CODES.BAD_REQUEST,
-        "Validation Error!",
-        "password length must be greater than",
-        +Enum.PASS_LENGTH
-      );
+        i18n.translate("COMMON.VALIDATION_ERROR_TITLE", req.user.language), i18n.translate("USERS.PASSWORD_LENGTH_ERROR", req.user.language, [Enum.PASS_LENGTH]));
     if (!body.roles || !Array.isArray(body.roles) || body.roles.length == 0) {
       throw new CustomError(
         Enum.HTTP_CODES.BAD_REQUEST,
-        "Validation Error!",
-        "roles field must be an array"
-      );
+        i18n.translate("COMMON.VALIDATION_ERROR_TITLE", req.user.language), i18n.translate("COMMON.FIELD_MUST_BE_TYPE", req.user.language, ["roles", "Array"]));
     }
     let roles = await Roles.find({ _id: { $in: body.roles } });
     if (roles.length == 0) {
       throw new CustomError(
         Enum.HTTP_CODES.BAD_REQUEST,
-        "Validation Error!",
-        "roles field must be an array"
-      );
+        i18n.translate("COMMON.VALIDATION_ERROR_TITLE", req.user.language), i18n.translate("COMMON.FIELD_MUST_BE_TYPE", req.user.language, ["roles", "Array"]));
     }
     let password = bcrypt.hashSync(body.password, bcrypt.genSaltSync(8), null);
     let user = await Users.create({
@@ -195,9 +184,7 @@ router.post("/update", auth.checkRoles("user_update"), async (req, res) => {
     if (!body._id)
       throw new CustomError(
         Enum.HTTP_CODES.BAD_REQUEST,
-        "Validation Error!",
-        "_id field must be filled"
-      );
+        i18n.translate("COMMON.VALIDATION_ERROR_TITLE", req.user.language), i18n.translate("COMMON.FIELD_MUST_BE_FILLED", req.user.language, ["_id"]));
     if (body.password && body.password.length < Enum.PASS_LENGTH) {
       updates.password = bcrypt.hashSync(
         body.password,
@@ -247,9 +234,7 @@ router.post("/delete", auth.checkRoles("user_delete"), async (req, res) => {
     if (!body._id)
       throw new CustomError(
         Enum.HTTP_CODES.BAD_REQUEST,
-        "Validation Error!",
-        "_id field must be filled"
-      );
+        i18n.translate("COMMON.VALIDATION_ERROR_TITLE", req.user.language), i18n.translate("COMMON.FIELD_MUST_BE_FILLED", req.user.language, ["_id"]));
     await Users.deleteOne({ _id: body._id });
     await UserRoles.deleteMany({ user_id: body._id });
     res.json(Response.successResponse({ success: true }));
