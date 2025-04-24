@@ -7,10 +7,9 @@ const auth = require("../lib/auth")();
 
 router.all("*", auth.authenticate(), (req, res, next) => {
   next();
-})
+});
 
-
-router.post("/", auth.checkRoles("auditlogs_view") ,async (req, res) => {
+router.post("/", auth.checkRoles("auditlogs_view"), async (req, res) => {
   try {
     let body = req.body;
     let query = {};
@@ -40,7 +39,7 @@ router.post("/", auth.checkRoles("auditlogs_view") ,async (req, res) => {
       .limit(limit);
     res.json(Response.successResponse(auditLogs));
   } catch (err) {
-    let errorResponse = Response.errorResponse(err);
+    let errorResponse = Response.errorResponse(err, req.user?.language);
     res.status(errorResponse.code).json(errorResponse);
   }
 });
