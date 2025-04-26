@@ -55,6 +55,7 @@ router.post("/register", async (req, res) => {
       first_name: body.first_name,
       last_name: body.last_name,
       phone_number: body.phone_number,
+      language: body.language,
     });
 
     let role = await Roles.create({
@@ -84,10 +85,20 @@ router.post("/auth", async (req, res) => {
 
     Users.validateFieldsBeforeAuth(email, password);
 
-    const user = await Users.findOne({email})
-    if(!user) throw new CustomError (Enum.HTTP_CODES.UNAUTHORIZED,i18n.translate("COMMON.VALIDATION_ERROR_TITLE", config.DEFAULT_LANG), i18n.translate("USERS.AUTH_ERROR", config.DEFAULT_LANG));
-    if(!user.validPassword(password)) throw new CustomError(Enum.HTTP_CODES.UNAUTHORIZED, i18n.translate("COMMON.VALIDATION_ERROR_TITLE", config.DEFAULT_LANG), i18n.translate("USERS.AUTH_ERROR", config.DEFAULT_LANG));
-    
+    const user = await Users.findOne({ email });
+    if (!user)
+      throw new CustomError(
+        Enum.HTTP_CODES.UNAUTHORIZED,
+        i18n.translate("COMMON.VALIDATION_ERROR_TITLE", config.DEFAULT_LANG),
+        i18n.translate("USERS.AUTH_ERROR", config.DEFAULT_LANG)
+      );
+    if (!user.validPassword(password))
+      throw new CustomError(
+        Enum.HTTP_CODES.UNAUTHORIZED,
+        i18n.translate("COMMON.VALIDATION_ERROR_TITLE", config.DEFAULT_LANG),
+        i18n.translate("USERS.AUTH_ERROR", config.DEFAULT_LANG)
+      );
+
     let payload = {
       id: user._id,
       exp: parseInt(Date.now() / 1000) + config.JWT.EXPIRE_TIME,
@@ -107,7 +118,7 @@ router.post("/auth", async (req, res) => {
 
 router.all("*", auth.authenticate(), (req, res, next) => {
   next();
-})
+});
 
 router.get("/", auth.checkRoles("user_view"), async (req, res) => {
   try {
@@ -125,30 +136,54 @@ router.post("/add", auth.checkRoles("user_add"), async (req, res) => {
     if (!body.email)
       throw new CustomError(
         Enum.HTTP_CODES.BAD_REQUEST,
-        i18n.translate("COMMON.VALIDATION_ERROR_TITLE", req.user.language), i18n.translate("COMMON.FIELD_MUST_BE_FILLED", req.user.language, ["email"]));
+        i18n.translate("COMMON.VALIDATION_ERROR_TITLE", req.user.language),
+        i18n.translate("COMMON.FIELD_MUST_BE_FILLED", req.user.language, [
+          "email",
+        ])
+      );
     if (!is.email(body.email))
       throw new CustomError(
         Enum.HTTP_CODES.BAD_REQUEST,
-        i18n.translate("COMMON.VALIDATION_ERROR_TITLE", req.user.language), i18n.translate("USERS.EMAIL_FORMAT_ERROR", req.user.language));
+        i18n.translate("COMMON.VALIDATION_ERROR_TITLE", req.user.language),
+        i18n.translate("USERS.EMAIL_FORMAT_ERROR", req.user.language)
+      );
 
     if (!body.password)
       throw new CustomError(
         Enum.HTTP_CODES.BAD_REQUEST,
-        i18n.translate("COMMON.VALIDATION_ERROR_TITLE", req.user.language), i18n.translate("COMMON.FIELD_MUST_BE_FILLED", req.user.language, ["password"]));
+        i18n.translate("COMMON.VALIDATION_ERROR_TITLE", req.user.language),
+        i18n.translate("COMMON.FIELD_MUST_BE_FILLED", req.user.language, [
+          "password",
+        ])
+      );
     if (body.password < Enum.PASS_LENGTH)
       throw new CustomError(
         Enum.HTTP_CODES.BAD_REQUEST,
-        i18n.translate("COMMON.VALIDATION_ERROR_TITLE", req.user.language), i18n.translate("USERS.PASSWORD_LENGTH_ERROR", req.user.language, [Enum.PASS_LENGTH]));
+        i18n.translate("COMMON.VALIDATION_ERROR_TITLE", req.user.language),
+        i18n.translate("USERS.PASSWORD_LENGTH_ERROR", req.user.language, [
+          Enum.PASS_LENGTH,
+        ])
+      );
     if (!body.roles || !Array.isArray(body.roles) || body.roles.length == 0) {
       throw new CustomError(
         Enum.HTTP_CODES.BAD_REQUEST,
-        i18n.translate("COMMON.VALIDATION_ERROR_TITLE", req.user.language), i18n.translate("COMMON.FIELD_MUST_BE_TYPE", req.user.language, ["roles", "Array"]));
+        i18n.translate("COMMON.VALIDATION_ERROR_TITLE", req.user.language),
+        i18n.translate("COMMON.FIELD_MUST_BE_TYPE", req.user.language, [
+          "roles",
+          "Array",
+        ])
+      );
     }
     let roles = await Roles.find({ _id: { $in: body.roles } });
     if (roles.length == 0) {
       throw new CustomError(
         Enum.HTTP_CODES.BAD_REQUEST,
-        i18n.translate("COMMON.VALIDATION_ERROR_TITLE", req.user.language), i18n.translate("COMMON.FIELD_MUST_BE_TYPE", req.user.language, ["roles", "Array"]));
+        i18n.translate("COMMON.VALIDATION_ERROR_TITLE", req.user.language),
+        i18n.translate("COMMON.FIELD_MUST_BE_TYPE", req.user.language, [
+          "roles",
+          "Array",
+        ])
+      );
     }
     let password = bcrypt.hashSync(body.password, bcrypt.genSaltSync(8), null);
     let user = await Users.create({
@@ -184,7 +219,11 @@ router.post("/update", auth.checkRoles("user_update"), async (req, res) => {
     if (!body._id)
       throw new CustomError(
         Enum.HTTP_CODES.BAD_REQUEST,
-        i18n.translate("COMMON.VALIDATION_ERROR_TITLE", req.user.language), i18n.translate("COMMON.FIELD_MUST_BE_FILLED", req.user.language, ["_id"]));
+        i18n.translate("COMMON.VALIDATION_ERROR_TITLE", req.user.language),
+        i18n.translate("COMMON.FIELD_MUST_BE_FILLED", req.user.language, [
+          "_id",
+        ])
+      );
     if (body.password && body.password.length < Enum.PASS_LENGTH) {
       updates.password = bcrypt.hashSync(
         body.password,
@@ -234,7 +273,11 @@ router.post("/delete", auth.checkRoles("user_delete"), async (req, res) => {
     if (!body._id)
       throw new CustomError(
         Enum.HTTP_CODES.BAD_REQUEST,
-        i18n.translate("COMMON.VALIDATION_ERROR_TITLE", req.user.language), i18n.translate("COMMON.FIELD_MUST_BE_FILLED", req.user.language, ["_id"]));
+        i18n.translate("COMMON.VALIDATION_ERROR_TITLE", req.user.language),
+        i18n.translate("COMMON.FIELD_MUST_BE_FILLED", req.user.language, [
+          "_id",
+        ])
+      );
     await Users.deleteOne({ _id: body._id });
     await UserRoles.deleteMany({ user_id: body._id });
     res.json(Response.successResponse({ success: true }));
@@ -243,6 +286,5 @@ router.post("/delete", auth.checkRoles("user_delete"), async (req, res) => {
     res.status(errorResponse.code).json(errorResponse);
   }
 });
-
 
 module.exports = router;
