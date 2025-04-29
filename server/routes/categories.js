@@ -123,7 +123,7 @@ router.post("/delete", auth.checkRoles("category_delete"), async (req, res) => {
     res.status(errorResponse.code).json(Response.errorResponse(err));
   }
 });
-router.post("/export", /*auth.checkRoles("category_export"),*/ async (req, res) => {
+router.post("/export", auth.checkRoles("category_export"), async (req, res) => {
   try {
     let categories = await Categories.find({});
 
