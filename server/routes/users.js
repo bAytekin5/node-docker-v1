@@ -90,7 +90,7 @@ router.post("/auth", async (req, res) => {
       throw new CustomError(
         Enum.HTTP_CODES.UNAUTHORIZED,
         i18n.translate("COMMON.VALIDATION_ERROR_TITLE", config.DEFAULT_LANG),
-        i18n.translate("USERS.AUTH_ERROR", config.DEFAULT_LANG)
+        i18n.translate("USERS.AUTH_ERROR",  config.DEFAULT_LANG)
       );
     if (!user.validPassword(password))
       throw new CustomError(
