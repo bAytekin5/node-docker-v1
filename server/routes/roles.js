@@ -7,7 +7,8 @@ const RolePrivileges = require("../db/models/RolePrivileges");
 const CustomError = require("../lib/Error");
 const Enum = require("../config/Enum");
 const auth = require("../lib/auth")();
-const config= require("../config")
+const config= require("../config");
+const UserRoles = require("../db/models/UserRoles");
 const i18n = new (require("../lib/i18n"))(config.DEFAULT_LANG);
 
 router.all("*", auth.authenticate(), (req, res, next) => {
@@ -75,49 +76,54 @@ router.post("/add", auth.checkRoles("role_add"), async (req, res) => {
 router.post("/update", auth.checkRoles("role_update"), async (req, res) => {
   let body = req.body;
   try {
-    if (!body._id)
-      throw new CustomError(
-        Enum.HTTP_CODES.BAD_REQUEST,
-        i18n.translate("COMMON.VALIDATION_ERROR_TITLE", req.user.language),
-        i18n.translate("COMMON.FIELD_MUST_BE_FILLED", req.user.language, ["_İd"]),
-      );
-    let updates = {};
-    if (body.role_name) updates.role_name = body.role_name;
-    if (typeof body.is_active === "boolean") updates.is_active = body.is_active;
-    if (
-      body.permissions &&
-      Array.isArray(body.permissions) &&
-      body.permissions.length > 0
-    ) {
-      let permissions = await RolePrivileges.find({ role_id: body._id });
-      let removePermissions = permissions.filter(
-        (x) => !body.permissions.includes(x.permissions)
-      );
-      let newPermissions = body.permissions.filter(
-        (x) => !permissions.map((p) => p.permissions).includes(x)
-      );
-      if (removePermissions.length > 0) {
-        await RolePrivileges.deleteMany({
-          _id: { $in: removePermissions.map((x) => x._id) },
-        });
-      }
-      if (newPermissions.length > 0) {
-        for (let i = 0; i < newPermissions.length; i++) {
-          let priv = RolePrivileges({
-            role_id: body._id,
-            permission: newPermissions[i],
-            created_by: req.user?.id,
-          });
-          await priv.save();
-        }
-      }
-    }
 
-    await Roles.updateOne({ _id: body._id }, updates);
-    res.json(Response.successResponse({ succes: true }));
+      if (!body._id) throw new CustomError(Enum.HTTP_CODES.BAD_REQUEST, i18n.translate("COMMON.VALIDATION_ERROR_TITLE", req.user.language),i18n.translate("COMMON.FIELD_MUST_BE_FILLED", req.user.language, ["_id"]));
+
+      let userRole = await UserRoles.findOne({user_id: req.user.id, role_id: body._id});
+
+      if (userRole) {
+          throw new CustomError(Enum.HTTP_CODES.FORBIDDEN, i18n.translate("COMMON.NEED_PERMISSIONS", req.user.language),i18n.translate("COMMON.NEED_PERMISSIONS", req.user.language));
+      }
+
+      let updates = {};
+
+      if (body.role_name) updates.role_name = body.role_name;
+      if (typeof body.is_active === "boolean") updates.is_active = body.is_active;
+
+      if (body.permissions && Array.isArray(body.permissions) && body.permissions.length > 0) {
+
+          let permissions = await RolePrivileges.find({ role_id: body._id });
+
+
+          let removedPermissions = permissions.filter(x => !body.permissions.includes(x.permission));
+          let newPermissions = body.permissions.filter(x => !permissions.map(p => p.permission).includes(x));
+
+          if (removedPermissions.length > 0) {
+              await RolePrivileges.remove({ _id: { $in: removedPermissions.map(x => x._id) } });
+          }
+
+          if (newPermissions.length > 0) {
+              for (let i = 0; i < newPermissions.length; i++) {
+                  let priv = new RolePrivileges({
+                      role_id: body._id,
+                      permission: newPermissions[i],
+                      created_by: req.user?.id
+                  });
+
+                  await priv.save();
+              }
+          }
+      }
+
+
+
+      await Roles.updateOne({ _id: body._id }, updates);
+
+      res.json(Response.successResponse({ success: true }));
+
   } catch (err) {
-    let errorResponse = Response.errorResponse(err);
-    res.status(errorResponse.code).json(errorResponse);
+      let errorResponse = Response.errorResponse(err);
+      res.status(errorResponse.code).json(errorResponse);
   }
 });
 
