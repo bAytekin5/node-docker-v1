@@ -11,6 +11,22 @@ const Roles = require("../db/models/Roles");
 const config = require("../config");
 const auth = require("../lib/auth")();
 const i18n = new (require("../lib/i18n"))(config.DEFAULT_LANG);
+const RateLimitMongo = require("rate-limit-mongo");
+const { rateLimit } = require ('express-rate-limit');
+
+
+
+const limiter = rateLimit({
+    store: new RateLimitMongo({
+    uri: config.DATABASE_CONNECTION,
+    collectionName: "ratelimits",
+    expireTimeMs: 15 * 60 * 1000, 
+  }),
+	windowMs: 15 * 60 * 1000, // 15 minutes
+	limit: 5, // Limit each IP to 100 requests per `window` (here, per 15 minutes).
+	legacyHeaders: false, // Disable the `X-RateLimit-*` headers.
+})
+
 var router = express.Router();
 
 router.post("/register", async (req, res) => {
@@ -79,7 +95,7 @@ router.post("/register", async (req, res) => {
   }
 });
 
-router.post("/auth", async (req, res) => {
+router.post("/auth",limiter, async (req, res) => {
   try {
     let { email, password } = req.body;
 
@@ -217,54 +233,53 @@ router.post("/add", auth.checkRoles("user_add"), async (req, res) => {
 });
 
 router.post("/update", auth.checkRoles("user_update"), async (req, res) => {
-  let body = req.body;
   try {
+    let body = req.body;
     let updates = {};
-    if (!body._id)
-      throw new CustomError(
-        Enum.HTTP_CODES.BAD_REQUEST,
-        i18n.translate("COMMON.VALIDATION_ERROR_TITLE", req.user.language),
-        i18n.translate("COMMON.FIELD_MUST_BE_FILLED", req.user.language, [
-          "_id",
-        ])
-      );
+
+    if (!body._id) throw new CustomError(Enum.HTTP_CODES.BAD_REQUEST, i18n.translate("COMMON.VALIDATION_ERROR_TITLE", req.user.language), i18n.translate("COMMON.FIELD_MUST_BE_FILLED", req.user.language, ["_id"]));
+
     if (body.password && body.password.length < Enum.PASS_LENGTH) {
-      updates.password = bcrypt.hashSync(
-        body.password,
-        bcrypt.genSaltSync(8),
-        null
-      );
+      updates.password = bcrypt.hashSync(body.password, bcrypt.genSaltSync(8), null);
     }
+
     if (typeof body.is_active === "boolean") updates.is_active = body.is_active;
     if (body.first_name) updates.first_name = body.first_name;
     if (body.last_name) updates.last_name = body.last_name;
     if (body.phone_number) updates.phone_number = body.phone_number;
+
+    if (body._id == req.user.id) {
+      body.roles = null;
+    }
+
     if (Array.isArray(body.roles) && body.roles.length > 0) {
+
       let userRoles = await UserRoles.find({ user_id: body._id });
-      let removeRoles = userRoles.filter(
-        (x) => !body.roles.includes(x.role_id.toString())
-      );
-      let newRoles = body.roles.filter(
-        (x) => !userRoles.map((r) => r.role_id).includes(x)
-      );
-      if (removeRoles.length > 0) {
-        await UserRoles.deleteMany({
-          _id: { $in: removeRoles.map((x) => x._id) },
-        });
+
+      let removedRoles = userRoles.filter(x => !body.roles.includes(x.role_id));
+      let newRoles = body.roles.filter(x => !userRoles.map(r => r.role_id).includes(x));
+
+      if (removedRoles.length > 0) {
+        await UserRoles.deleteMany({ _id: { $in: removedRoles.map(x => x._id.toString()) } });
       }
+
       if (newRoles.length > 0) {
         for (let i = 0; i < newRoles.length; i++) {
           let userRole = new UserRoles({
             role_id: newRoles[i],
-            user_id: body._id,
+            user_id: body._id
           });
+
           await userRole.save();
         }
       }
+
     }
 
     await Users.updateOne({ _id: body._id }, updates);
+
     res.json(Response.successResponse({ success: true }));
+
   } catch (err) {
     let errorResponse = Response.errorResponse(err);
     res.status(errorResponse.code).json(errorResponse);
