@@ -4,7 +4,7 @@ module.exports = {
   LOG_LEVEL: process.env.LOG_LEVEL || "debug",
   DATABASE_CONNECTION: process.env.DATABASE_CONNECTION,
   JWT: {
-    SECRET: process.env.JWT_SECRET || "",
+    SECRET: process.env.JWT_SECRET || "default_secret_key_12345567",
     EXPIRE_TIME: !isNaN(parseInt(process.env.TOKEN_EXPIRE_TIME))
       ? parseInt(process.env.TOKEN_EXPIRE_TIME)
       : 24 * 60 * 60,

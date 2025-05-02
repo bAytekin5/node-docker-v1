@@ -1,0 +1,13 @@
+services:
+  app:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: node-docker-app
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    volumes:
+      - ./tmp:/data/tmp
+    restart: unless-stopped
