@@ -1,5 +1,5 @@
-var express = require("express");
-const bcrypt = require("bcrypt");
+const express = require("express");
+const bcrypt = require("bcryptjs");
 const is = require("is_js");
 const jwt = require("jwt-simple");
 const Users = require("../db/models/Users");
